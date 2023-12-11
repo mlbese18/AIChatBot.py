@@ -12,7 +12,10 @@ from ttkbootstrap.scrolled import ScrolledText
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
-informationFile = "FlowerDocInfo.txt"
+global stop_words
+stop_words = set(stopwords.words('english'))
+
+informationFile = "FlowerDoc2.0.txt"
 
 #create the GUI
 # Try other themes: superhero darky cyborg vapor lumen minty morph
@@ -31,6 +34,7 @@ def send_message(event=None):
         keyMatching(large_string, msg)
         generateAIResponce()
         addNewInfo("newSentence", "newInfo", "newKeyWords")
+        clean_sentence(msg)
 
 def bot_response(response):
     chat_window.insert(tb.END, "Agent: " + response + "\n")
@@ -94,6 +98,32 @@ def keyMatching(sentences, userQuestion):
     #for each key word in input sentence, check if that word matches with a doc sentence, if it does, add to list and
     #for the next loop, use the list that we just created.
     #print(stuff)
+
+def clean_sentence(sentence):
+    emailsNoStop = []
+    #for email in sentence:
+    words = sentence.split()
+    newSentence = ""
+    i = 0
+    print(words)
+    for word in words:
+        print(words[i])
+        if word.lower() in stop_words:
+            print("word = ",word)
+            print("Delete word: ", words[i])
+            #words.pop(i)
+            print("next Word: ", words[i])
+            i += 1
+        else:
+            newSentence = newSentence + words[i] + " "
+            #words.pop(i)
+            i += 1                               #check
+
+    newSentence = re.sub(r"[^a-zA-z0-9 ]", "", newSentence.lower())
+    print("old sentence",sentence)
+    print("New sentence = ",newSentence)
+
+    return newSentence
 
 #put the info back into the file
 global newData
