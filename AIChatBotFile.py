@@ -4,7 +4,13 @@ import PyPDF2
 import os
 import re
 import nltk
+import spacy
+import string
 from tkinter import *
+
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+nlp = spacy.load("en_core_web_sm")
 
 import ttkbootstrap as tb # to install do: pip install ttkbootstrap
 from ttkbootstrap.scrolled import ScrolledText
@@ -13,6 +19,8 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
 global stop_words
+global questionBank
+questionBank = []
 stop_words = set(stopwords.words('english'))
 
 informationFile = "FlowerDoc2.0.txt"
@@ -37,7 +45,7 @@ def send_message(event=None):
         #clean_sentence(msg)
         #findQuestionWords(msg)
         #compareInfo("This is string one", "This is string two")
-        keyMatching(large_string, msg)
+        keyMatching(large_string, capitalize_words(correct_typo(msg)))
 
 def bot_response(response):
     chat_window.insert(tb.END, "Agent: " + response + "\n")
@@ -85,6 +93,17 @@ def extract_info():
 def keyMatching(sentences, userQuestion):
     #print(sentences)
     #split the large_string into individual sentences
+    if not isQuestion(userQuestion):
+        if len(userQuestion.split()) >= 4:
+            bot_response("Thank you for the information")
+            addNewInfo(userQuestion, findQuestionWords(userQuestion), clean_sentence(userQuestion))
+            return
+        else:
+            bot_response("Information does not meet requirements to add to database")
+            bot_response("What else is on your mind?")
+            return
+
+
     sentences = sentences.split("\n")
     i = 0
     currentBestScore = 0
@@ -105,7 +124,7 @@ def keyMatching(sentences, userQuestion):
                 QSentences = []
                 currentBestScore = compareInfo(currentQuestion, userQuestionWords)
                 QSentences.append(sentences[i])
-                print(currentBestScore)
+                print("Question Score = " ,currentBestScore)
         i += 1
     j = 0
     if currentBestScore == 0:
@@ -127,7 +146,7 @@ def keyMatching(sentences, userQuestion):
                 KSentences = []
                 currentBestScoreKeys = compareInfo(currentKeys, userQuestionKeys)
                 KSentences.append(sentences[j])
-                print(currentBestScoreKeys)
+                print("Key Score = ",currentBestScoreKeys)
         j += 1
     if currentBestScoreKeys == 0:
         bot_response("This doesnt seem to be related to Sunflowers or roses")
@@ -135,10 +154,14 @@ def keyMatching(sentences, userQuestion):
     #print("Ksentences = ",KSentences)
     #print("Current best Score: ", currentBestScore)
     k = 0
+    finalResponse = ""
     for part in KSentences:
         part2 = KSentences[k].split("|")
-        bot_response(part2[0])
+        finalResponse = finalResponse + part2[0].strip() + ". "
         k += 1
+    finalResponse = good_manner(userQuestion,finalResponse)
+    collect_question(userQuestion)
+    bot_response(finalResponse)
         #j = 0
         #for section in splitSentences:
             #print(splitSentences[j])
@@ -301,18 +324,123 @@ global newData
 newData = "new data"
 def addNewInfo(newSentence, infoType, keywords):
     with open(informationFile, 'a') as file:
-            file.write(newSentence + " | " + infoType + " | " + keywords +"\n")
+            file.write(capitalize_words(correct_typo(newSentence)) + " | " + infoType + " | " + keywords +"\n")
+
+# just chech the beginning of the sentence for the question words
+# split the string, use the first value in the list of words to check for question words
+# if not a question, add the info to the file (include the infotype (question words) and keyWords)
+def isQuestion(sentence):
+    list = sentence.split()
+    checkWord = list[0].lower()
+    questionWordList = ["what", "where", "when", "why", "how", "who", "is", "could"]
+    isQuestion = False
+    for check in questionWordList:
+        if checkWord == check:
+            isQuestion = True
+    return isQuestion
+
+def good_manner(input, re):
+    inputText = input.lower()
+    response = re
+    if "please" in inputText:
+        response = "Thanks for asking. " + response
+    if "thanks" in inputText:
+        response = "Your welcome, here what I found. " + response
+    if "good morning" in inputText:
+        response = "Good morning. " + response
+    if "good evening" in inputText:
+        response = "Good evening. " + response
+    if "good afternoon" in inputText:
+        response = "Good afternoon. " + response
+    if "good night" in inputText:
+        response = "Good night. " + response
+    if "hi" in inputText or "hello" in inputText:
+        response = "Hello. " + response
+    return response
+
+def correct_typo(input):
+    inputText = input.lower()
+    response = "Did you mean "
+    flower = ["floowers", "flooer", "frower", "fiewer", "floww", "flooe", "flooor", "flouer", "follwer", "flowerey", "flor", "flowin", "fewwer", "flowerly", "lowwer", "loewer", "slowey", "fowar",
+              "flowly", "flowes"]
+    for i in flower:
+        if i in inputText:
+            if response != "Did you mean ":
+                response = response + ", "
+            response = response + "\"flower\" for \"" + i +"\""
+            inputText = inputText.replace(i, "flower")
+    sun = ["suasn", "sund", "suran", "sugns", "saund", "sgn", "sunn", "swun", "suana", "sundy", "sut", "spune", "kun", "sauan", "scna", "soutn", "sytun", "suh", "sunce"]
+    for i in sun:
+        if i in inputText:
+            if response != "Did you mean ":
+                response = response + ", "
+            response = response + "\"sun\" for \"" + i +"\""
+            inputText = inputText.replace(i, "sun")
+    sunflower = ["sinflower", "sunflowes", "saflower", "sunflour", "sunfower", "lyrflower", "sponflower", "sunbloker", "aunflower", "zunflower", "xunflower", "dunflower",
+                  "eunflower", "wunflower", "synflower", "shnflower", "sjnflower", "s8nflower", "s7nflower", "subflower"]
+    for i in sunflower:
+        if i in inputText:
+            if response != "Did you mean ":
+                response = response + ", "
+            response = response + "\"sunflower\" for \"" + i +"\""
+            inputText = inputText.replace(i, "sunflower")
+    rose = ["roseta", "riase", "risqe", "rosett", "remose", "rosess", "proce", "risde", "rasie", "rhose", "broze", "forse", "prosse", "rese", "rouste", "gose", "rlse", "risj", "ciose"]
+    for i in rose:
+        if i in inputText:
+            if response != "Did you mean ":
+                response = response + ", "
+            response = response + "\"rose\" for \"" + i +"\""
+            inputText = inputText.replace(i, "rose")
+    color = ["colol", "coord", "couslor", "conour", "colver", "colle", "colose", "coloed", "scholor", "colpor", "rollor", "cornor", "coclor", "collon", "culor", "coutor", "colom", "colar", "coolor", "colora"]
+    for i in color:
+        if i in inputText:
+            if response != "Did you mean ":
+                response = response + ", "
+            response = response + "\"color\" for \"" + i +"\""
+            inputText = inputText.replace(i, "color")
+    human = ["wiman", "humand", "himans", "ohman", "humanty", "whiman", "humit", "hunman", "humnan", "hunam", "humant", "hgan", "wumen", "humain", "huamn", "humasn", "whoman", "hummm", "kuman", "juman"]
+    for i in human:
+        if i in inputText:
+            if response != "Did you mean ":
+                response = response + ", "
+            response = response + "\"human\" for \"" + i +"\""
+            inputText = inputText.replace(i, "human")
+
+    response = response + "? if so then here is what I found. "
+    if response != "Did you mean ? if so then here is what I found. ":
+        bot_response(response)
+    return inputText
+
+def capitalize_words(input):
+    text = input
+    doc = nlp(text)
+    for ent in doc.ents:
+        print(ent.text, ent.label_)
+        text = text.replace(ent.text, string.capwords(ent.text))
+    return text
 
 
-#GUI implimentation testing
-#def printUserInput (msg):
-    #print("UserInput: ",msg)
-    #print(large_string)
 
-#def generateAIResponce ():
-    #bot_response(large_string)
-    #print("placeholder")
+def collect_question(input):
+    response = ""
+    questionBank.append(input)
+    print("Question bank ",questionBank)
+    match = 0
+    #with open(question_file,'r') as file:
+    if len(questionBank) >= 1:
+        for question in questionBank:
+            if input in question:
+                match = match + 1
+        if match == 2:
+            response = "You already asked this question, but here is the answer anyway "
+            bot_response(response)
+        if match == 3:
+            response = "You have asked this question twice, but it seems you still want the answer. "
+            bot_response(response)
+        if match > 3:
+            response = "You have asked this question " + str(match-1) + " times, but here is you answer. "
+            bot_response(response)
 
-#Placeholder
+    return
 
 root.mainloop()
