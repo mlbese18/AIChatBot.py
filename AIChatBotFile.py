@@ -27,7 +27,7 @@ informationFile = "FlowerDoc2.0.txt"
 
 #create the GUI
 # Try other themes: superhero darky cyborg vapor lumen minty morph
-root = tb.Window(themename="solar")
+root = tb.Window(themename="lumen")
 root.title("Simple Virtual Assistant")
 root.geometry("")
 
@@ -61,7 +61,7 @@ entry_field.bind("<Return>", send_message)
 send_button = tb.Button(root, text="Send", command=send_message, width=6, bootstyle="outline")
 send_button.grid(row=1, column=1)
 
-topic = 'Titanic movie'
+topic = 'Sunflowers and Roses'
 initial_response = "Hi, I am your virtual assistant, ask me anything about " + topic
 
 root.after(500, bot_response(initial_response))
@@ -332,7 +332,7 @@ def addNewInfo(newSentence, infoType, keywords):
 def isQuestion(sentence):
     list = sentence.split()
     checkWord = list[0].lower()
-    questionWordList = ["what", "where", "when", "why", "how", "who", "is", "could"]
+    questionWordList = ["what", "where", "when", "why", "how", "who", "is", "could", "do"]
     isQuestion = False
     for check in questionWordList:
         if checkWord == check:
